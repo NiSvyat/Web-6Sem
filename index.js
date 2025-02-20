@@ -1,6 +1,7 @@
 const { sequelize } = require('./config/db'); // Импортируем sequelize из db.js
 const Event = require('./models/Event'); // Импортируем модель Event
 const User = require('./models/User'); // Импортируем модель Event
+const { startServer } = require('./app'); // Импортируем функцию запуска сервера
 
 // Устанавливаем ассоциацию один-ко-многим
 User.hasMany(Event, {
@@ -25,3 +26,6 @@ const checkDatabaseConnection = async () => {
 
 // Вызов функции проверки соединения
 checkDatabaseConnection();
+
+// Запускаем сервер
+startServer();

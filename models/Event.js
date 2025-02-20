@@ -27,6 +27,10 @@ Event.init({
         type: DataTypes.INTEGER,
         allowNull: false, // Поле обязательно
     },
+    category: {
+        type: DataTypes.ENUM('концерт', 'лекция', 'выставка'), // Ограничение категорий
+        allowNull: false,
+    },
 }, {
     sequelize, // Передаем экземпляр sequelize
     modelName: 'Event', // Имя модели

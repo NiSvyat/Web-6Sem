@@ -4,12 +4,54 @@ const dotenv = require('dotenv');
 const { authenticate } = require('./config/db');
 const Event = require('./models/Event'); // Импортируем модель Event
 const User = require('./models/User'); // Импортируем модель User
-
-dotenv.config();
+const apiKeyMiddleware = require('./middleware/apiKeyMiddleware');
 const app = express();
+const morgan = require('morgan');
+const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+app.use(morgan(':method :url'));
+dotenv.config();
 app.use(express.json());
 app.use(cors());
 
+// Swagger setup
+const swaggerOptions = {
+    swaggerDefinition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Events API',
+            version: '1.0.0',
+            description: 'API for managing events',
+        },
+        servers: [
+            {
+                url: 'http://localhost:8081',
+            },
+        ],
+        components: {
+            securitySchemes: {
+                ApiKeyAuth: {
+                    type: 'apiKey',
+                    in: 'header',
+                    name: 'api_key', // Имя заголовка, который вы используете для API-ключа
+                    description: 'API Key для доступа к защищенным маршрутам',
+                },
+            },
+        },
+        security: [
+            {
+                ApiKeyAuth: [],
+            },
+        ],
+    },
+    apis: ['./app.js'], // Укажите путь к файлам, где находятся ваши аннотации
+};
+
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+app.use(apiKeyMiddleware);
 const PORT = 8081;
 
 // Проверяем соединение с базой данных
@@ -35,6 +77,17 @@ const syncDatabase = async () => {
 syncDatabase();
 
 // Получение списка всех мероприятий
+/**
+ * @swagger
+ * /events:
+ *   get:
+ *     summary: Получить список всех мероприятий
+ *     responses:
+ *       200:
+ *         description: Успешно получен список мероприятий
+ *       500:
+ *         description: Ошибка сервера
+ */
 app.get('/events', async (req, res) => {
     try {
         const events = await Event.findAll();
@@ -46,6 +99,26 @@ app.get('/events', async (req, res) => {
 });
 
 // Получение одного мероприятия по ID
+/**
+ * @swagger
+ * /events/{id}:
+ *   get:
+ *     summary: Получить мероприятие по ID
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: ID мероприятия
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Успешно получено мероприятие
+ *       404:
+ *         description: Мероприятие не найдено
+ *       500:
+ *         description: Ошибка сервера
+ */
 app.get('/events/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -61,16 +134,47 @@ app.get('/events/:id', async (req, res) => {
 });
 
 // Создание мероприятия
+/**
+ * @swagger
+ * /events:
+ *   post:
+ *     summary: Создать новое мероприятие
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *                 format: date-time
+ *               createdBy:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Успешно создано мероприятие
+ *       400:
+ *         description: Ошибка валидации данных
+ *       500:
+ *         description: Ошибка сервера
+ */
 app.post('/events', async (req, res) => {
-    const { title, description, date, createdBy } = req.body;
+    const { title, description, date, createdBy, category } = req.body;
 
     // Проверка обязательных данных
-    if (!title || !date || !createdBy) {
+    if (!title || !date || !createdBy || !category) {
         return res.status(400).json({ message: 'Пожалуйста, укажите все обязательные поля' });
     }
 
     try {
-        const newEvent = await Event.create({ title, description, date, createdBy });
+        const newEvent = await Event.create({ title, description, date, createdBy, category });
         res.status(201).json(newEvent);
     } catch (error) {
         console.error('Ошибка при создании мероприятия:', error);
@@ -78,49 +182,18 @@ app.post('/events', async (req, res) => {
     }
 });
 
-// Обновление мероприятия
-app.put('/events/:id', async (req, res) => {
-    const { id } = req.params;
-    const { title, description, date, createdBy } = req.body;
-
-    // Проверка обязательных данных
-    if (!title || !date || !createdBy) {
-        return res.status(400).json({ message: 'Пожалуйста, укажите все обязательные поля' });
-    }
-
-    try {
-        const event = await Event.findByPk(id);
-        if (!event) {
-            return res.status(404).json({ message: 'Мероприятие не найдено' });
-        }
-
-        await event.update({ title, description, date, createdBy });
-        res.status(200).json(event);
-    } catch (error) {
-        console.error('Ошибка при обновлении мероприятия:', error);
-        res.status(500).json({ message: 'Ошибка сервера' });
-    }
-});
-
-// Удаление мероприятия
-app.delete('/events/:id', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        const event = await Event.findByPk(id);
-        if (!event) {
-            return res.status(404).json({ message: 'Мероприятие не найдено' });
-        }
-
-        await event.destroy();
-        res.status(204).send(); // Успешное удаление, без содержимого
-    } catch (error) {
-        console.error('Ошибка при удалении мероприятия:', error);
-        res.status(500).json({ message: 'Ошибка сервера' });
-    }
-});
-
 // Получение списка пользователей
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Получить список всех пользователей
+ *     responses:
+ *       200:
+ *         description: Успешно получен список пользователей
+ *       500:
+ *         description: Ошибка сервера
+ */
 app.get('/users', async (req, res) => {
     try {
         const users = await User.findAll();
@@ -132,6 +205,31 @@ app.get('/users', async (req, res) => {
 });
 
 // Создание нового пользователя
+/**
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Создать нового пользователя
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       201:
+ *         description: Успешно создан новый пользователь
+ *       400:
+ *         description: Ошибка валидации данных
+ *       500:
+ *         description: Ошибка сервера
+ */
 app.post('/users', async (req, res) => {
     const { name, email } = req.body;
 

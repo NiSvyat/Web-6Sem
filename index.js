@@ -15,14 +15,25 @@ Event.belongsTo(User, {
 });
 
 // Проверка подключения к базе данных
+// index.js
 const checkDatabaseConnection = async () => {
     try {
         await sequelize.authenticate();
         console.log('Соединение с базой данных успешно установлено.');
+
+        // Удаляем таблицы (если нужно)
+        await Event.drop(); // Удаляем таблицу Event
+        await User.drop(); // Удаляем таблицу User (если нужно)
+
+        // Синхронизируем модели
+        await User.sync();
+        await Event.sync();
+        console.log('Модели успешно синхронизированы с базой данных.');
     } catch (error) {
         console.error('Не удалось подключиться к базе данных:', error);
     }
 };
+
 
 // Вызов функции проверки соединения
 checkDatabaseConnection();

@@ -2,17 +2,26 @@
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { authenticate } = require('./config/db');
-const Event = require('./models/Event'); // Импортируем модель Event
-const User = require('./models/User'); // Импортируем модель User
+const Event = require('./models/Event');
+const User = require('./models/User');
 const apiKeyMiddleware = require('./middleware/apiKeyMiddleware');
 const app = express();
 const morgan = require('morgan');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const { passport, generateToken } = require('./config/passport');
+const authRouter = require('./routes/auth');
+const publicRouter = require('./routes/public');
+const protectedRouter = require('./routes/index');
+
 app.use(morgan(':method :url'));
 dotenv.config();
 app.use(express.json());
 app.use(cors());
+app.use(passport.initialize());
+app.use('/auth', authRouter);
+app.use('/', publicRouter);
+app.use('/', protectedRouter);
 
 // Swagger setup
 const swaggerOptions = {
@@ -75,6 +84,41 @@ const syncDatabase = async () => {
 
 // Вызов функции синхронизации
 syncDatabase();
+
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        // Ищем пользователя по email
+        const user = await User.findOne({ where: { email } });
+        if (!user) {
+            return res.status(401).json({ message: 'Пользователь не найден' });
+        }
+
+        // Проверяем пароль
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Неверный пароль' });
+        }
+
+        // Генерируем токен
+        const token = generateToken(user);
+        res.status(200).json({ token });
+    } catch (error) {
+        console.error('Ошибка при входе:', error);
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
+
+app.get('/protected', passport.authenticate('jwt', { session: false }), (req, res) => {
+    res.status(200).json({ message: 'Доступ разрешен', user: req.user });
+});
+
+app.get('/protected', passport.authenticate('jwt', { session: false }), (req, res) => {
+    res.status(200).json({ message: 'Доступ разрешен', user: req.user });
+});
+
+
 
 // Получение списка всех мероприятий
 /**

@@ -15,7 +15,7 @@ Event.belongsTo(User, {
 });
 
 // Проверка подключения к базе данных
-// index.js
+
 const checkDatabaseConnection = async () => {
     try {
         await sequelize.authenticate();

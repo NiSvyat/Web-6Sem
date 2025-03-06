@@ -33,29 +33,33 @@ const { generateToken } = require('../config/passport'); // Для генера�
  *         description: Ошибка сервера
  */
 router.post('/register', async (req, res) => {
-    const { name, email, password } = req.body;
+  const { name, email, password } = req.body;
 
-    // Проверка обязательных полей
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: 'Пожалуйста, заполните все поля' });
+  // Проверка обязательных полей
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: 'Пожалуйста, заполните все поля' });
+  }
+
+  try {
+    // Проверяем, существует ли пользователь с таким email
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: 'Пользователь с таким email уже существует' });
     }
 
-    try {
-        // Проверяем, существует ли пользователь с таким email
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
-            return res.status(400).json({ message: 'Пользователь с таким email уже существует' });
-        }
+    // Создаем нового пользователя
+    const newUser = await User.create({ name, email, password });
 
-        // Создаем нового пользователя
-        const newUser = await User.create({ name, email, password });
-
-        // Возвращаем успешный ответ
-        res.status(201).json({ message: 'Пользователь успешно зарегистрирован', user: newUser });
-    } catch (error) {
-        console.error('Ошибка при регистрации пользователя:', error);
-        res.status(500).json({ message: 'Ошибка сервера' });
-    }
+    // Возвращаем успешный ответ
+    res
+      .status(201)
+      .json({ message: 'Пользователь успешно зарегистрирован', user: newUser });
+  } catch (error) {
+    console.error('Ошибка при регистрации пользователя:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
 });
 
 // Эндпоинт для авторизации
@@ -93,35 +97,39 @@ router.post('/register', async (req, res) => {
  *         description: Ошибка сервера
  */
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    // Проверка обязательных полей
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Пожалуйста, укажите email и пароль' });
+  // Проверка обязательных полей
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ message: 'Пожалуйста, укажите email и пароль' });
+  }
+
+  try {
+    // Ищем пользователя по email
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: 'Пользователь с таким email не найден' });
     }
 
-    try {
-        // Ищем пользователя по email
-        const user = await User.findOne({ where: { email } });
-        if (!user) {
-            return res.status(400).json({ message: 'Пользователь с таким email не найден' });
-        }
-
-        // Проверяем пароль
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Неверный пароль' });
-        }
-
-        // Генерируем JWT-токен
-        const token = generateToken(user);
-
-        // Возвращаем токен клиенту
-        res.status(200).json({ token });
-    } catch (error) {
-        console.error('Ошибка при входе в систему:', error);
-        res.status(500).json({ message: 'Ошибка сервера' });
+    // Проверяем пароль
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Неверный пароль' });
     }
+
+    // Генерируем JWT-токен
+    const token = generateToken(user);
+
+    // Возвращаем токен клиенту
+    res.status(200).json({ token });
+  } catch (error) {
+    console.error('Ошибка при входе в систему:', error);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
 });
 
 // Экспортируем роутер

@@ -1,14 +1,14 @@
 ﻿import { Request, Response, NextFunction } from 'express';
-import * as express from 'express';
-import * as cors from 'cors';
-import * as dotenv from 'dotenv';
-import { authenticate } from './config/db';
-import EventModel from './models/EventModel';
-import User from './models/User';
-import apiKeyMiddleware from './middleware/apiKeyMiddleware';
-import * as morgan from 'morgan';
-import * as swaggerJsDoc from 'swagger-jsdoc';
-import * as swaggerUi from 'swagger-ui-express';
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { authenticate } from '@config/db';
+import EventModel from '@models/EventModel';
+import User from '@models/User';
+import apiKeyMiddleware from '@middleware/apiKeyMiddleware';
+import morgan from 'morgan';
+import swaggerJsDoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
 
 dotenv.config();
 const app = express();

@@ -41,6 +41,16 @@ db.ts для подключения к базе данных.
 
 dev для запуска сервера с помощью nodemon.
 
+test запуск теста
+
+tsc запуск проекта с помощью typescript
+
+format для форматирования
+
+lint для отладки
+
+check для вывода сводки о командах
+
 Зависимости:
 
 Основные: express, sequelize, passport, bcrypt, jsonwebtoken.

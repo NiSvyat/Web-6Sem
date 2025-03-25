@@ -15,7 +15,11 @@ Event.belongsTo(User, {
 });
 
 // Проверка подключения к базе данных
+<<<<<<< Updated upstream
 // index.js
+=======
+
+>>>>>>> Stashed changes
 const checkDatabaseConnection = async () => {
     try {
         await sequelize.authenticate();

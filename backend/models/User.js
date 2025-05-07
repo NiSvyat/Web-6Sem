@@ -1,38 +1,43 @@
 ﻿const { Model, DataTypes } = require('sequelize');
-const { sequelize } = require('../config/db');
+const bcrypt = require('bcryptjs');
 
-class User extends Model {}
-
-// структура модели
-User.init({
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true, // первичный ключ
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  email: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-}, {
-  sequelize,
-  modelName: 'User',
-  tableName: 'users',
-  timestamps: true, // включение createdAt и updatedAt
-});
-
-// синхронизация модели с базой данных
-const syncModel = async () => {
-  try {
-    await User.sync();
-    console.log('таблица "users" успешно синхронизирована.');
-  } catch (error) {
-    console.error('ошибка при синхронизации таблицы "users":', error);
+module.exports = (sequelize) => {
+  class User extends Model {
+    async comparePassword(password) {
+      return bcrypt.compare(password, this.password);
+    }
   }
-}
 
-module.exports = { User, syncModel };
+  User.init({
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      set(value) {
+        const salt = bcrypt.genSaltSync(10);
+        const hash = bcrypt.hashSync(value, salt);
+        this.setDataValue('password', hash);
+      }
+    },
+  }, {
+    sequelize,
+    modelName: 'User',
+    tableName: 'users',
+    timestamps: true,
+  });
+
+  return User;
+};

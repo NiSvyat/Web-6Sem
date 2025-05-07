@@ -1,5 +1,7 @@
-﻿const { Event } = require('../models/Event');
-const { User } = require('../models/User');
+﻿const db = require('../models');
+const User = db.User;
+const Event = db.Event;
+const RefreshToken = db.RefreshToken;
 const { validateEventData } = require('../middleware/validateData');
 
 

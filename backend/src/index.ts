@@ -1,17 +1,19 @@
-﻿const express = require('express');
-const dotenv = require('dotenv'); // для загрузки из .env
-const cors = require('cors');
-const morgan = require('morgan');
-const { authenticateDB } = require('./config/db');
-const userRoutes = require('./routes/userRoutes');
-const eventRoutes = require('./routes/eventRoutes');
-
-const errorHandler = require('./middleware/errorHandler');
-
-const swaggerJsDoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
-
-const swaggerConfig = require('./config/swaggerConfig');
+﻿import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import morgan from 'morgan';
+import { authenticateDB } from './config/db';
+import userRoutes from './routes/userRoutes';
+import eventRoutes from './routes/eventRoutes';
+import errorHandler from './middleware/errorHandler';
+import swaggerJsDoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import swaggerConfig from './config/swaggerConfig';
+import passport from 'passport';
+import db from './models';
+import associate from './models/associations';
+import authRoutes from './routes/auth';
+import './config/passport';
 
 dotenv.config();
 
@@ -20,17 +22,11 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-const db = require('./models');
-const associate = require('./models/associations');
-
 associate(db);
 
 db.sequelize.sync({ alter: true })
   .then(() => console.log('Database synced'))
-  .catch(err => console.error('Database sync error:', err));
-
-const passport = require('passport');
-require('./config/passport');
+  .catch((err: Error) => console.error('Database sync error:', err));
 
 const app = express();
 
@@ -42,10 +38,8 @@ const corsOptions = {
 
 app.use(express.json());
 app.use(cors(corsOptions));
-
 app.use(passport.initialize());
 
-const authRoutes = require('./routes/auth');
 app.use('/auth', authRoutes);
 
 app.get('/protected', passport.authenticate('jwt', { session: false }), (req, res) => {
@@ -53,22 +47,20 @@ app.get('/protected', passport.authenticate('jwt', { session: false }), (req, re
 });
 
 app.use(morgan('[:method] :url'));
-
 app.use(errorHandler);
-
 app.use(userRoutes);
 app.use(eventRoutes);
 
 const swaggerDocs = swaggerJsDoc(swaggerConfig);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
   res.json({ message: 'мефедрон' });
 });
 
-app.listen(PORT, async (err) => {
+app.listen(PORT, async (err?: Error) => {
   if (err) {
     console.error(`ошибка при запуске сервера: ${err.message}`);
     return;

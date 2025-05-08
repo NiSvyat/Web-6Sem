@@ -1,7 +1,27 @@
-﻿const { Model, DataTypes } = require('sequelize');
+﻿import { Model, DataTypes, Optional } from 'sequelize';
 
-module.exports = (sequelize) => {
-  class Event extends Model {}
+interface EventAttributes {
+  id: number;
+  title: string;
+  description: string | null;
+  date: Date;
+  category: 'Музыкальное мероприятие' | 'Спортивное мероприятие' | 'Искусство' |
+    'Бизнес встреча' | 'Семинар' | 'Образовательная встреча' |
+    'Деловая встреча' | 'Другое';
+  createdBy: number;
+}
+
+interface EventCreationAttributes extends Optional<EventAttributes, 'id'> {}
+
+export default (sequelize: any) => {
+  class Event extends Model<EventAttributes, EventCreationAttributes> implements EventAttributes {
+    public id!: number;
+    public title!: string;
+    public description!: string | null;
+    public date!: Date;
+    public category!: EventAttributes['category'];
+    public createdBy!: number;
+  }
 
   Event.init({
     id: {

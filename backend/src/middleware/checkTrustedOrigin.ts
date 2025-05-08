@@ -1,12 +1,12 @@
-﻿// проверка на origin
-const checkTrustedOrigin = (str) => (req, res, next) => {
+﻿import { Request, Response, NextFunction } from 'express';
 
+// проверка на origin
+const checkTrustedOrigin = (str: string) => (req: Request, res: Response, next: NextFunction) => {
   // получение списка разрешённых методов из .env
-  const allowedMethods = process.env.CORS_ALLOWED_METHODS.split(",");
+  const allowedMethods = process.env.CORS_ALLOWED_METHODS?.split(",") || [];
 
   // проверка на ограничения
   if (!allowedMethods.includes(str)) {
-
     const origin = req.get("origin"); // заголовок Origin
 
     // разрешение запроса если origin отсутствует
@@ -16,7 +16,7 @@ const checkTrustedOrigin = (str) => (req, res, next) => {
     }
 
     // получение списка доверенных origin из .env
-    const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS.split(",");
+    const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(",") || [];
 
     // проверка на доверенность
     if (allowedOrigins.includes(origin)) {
@@ -26,14 +26,9 @@ const checkTrustedOrigin = (str) => (req, res, next) => {
       console.warn(`запрос от недоверенного origin: ${origin}`);
       res.status(403).json({ error: "запрос запрещён" });
     }
-    next();
-
   } else {
     next();
   }
-
 };
 
-module.exports = {
-  checkTrustedOrigin,
-};
+export { checkTrustedOrigin };

@@ -1,4 +1,13 @@
-﻿module.exports = function(db) {
+﻿import { Sequelize } from 'sequelize';
+
+interface DbModels {
+  [key: string]: any;
+  User: any;
+  Event: any;
+  RefreshToken: any;
+}
+
+export default function(db: DbModels): void {
   // Clear any existing associations first
   Object.keys(db).forEach(modelName => {
     if (db[modelName].associate) {
@@ -19,12 +28,12 @@
 
   // User-RefreshToken relationships
   db.User.hasMany(db.RefreshToken, {
-    foreignKey: 'id',
-    sourceKey: 'id'  // Changed from 'refreshTokens' to 'userRefreshTokens'
+    foreignKey: 'userId',  // Changed to 'userId' for proper foreign key relationship
+    sourceKey: 'id'
   });
 
   db.RefreshToken.belongsTo(db.User, {
-    foreignKey: 'id',
-    sourceKey: 'id'  // Changed from 'user' to 'tokenUser'
+    foreignKey: 'userId',  // Changed to 'userId' for proper foreign key relationship
+    targetKey: 'id'
   });
-};
+}

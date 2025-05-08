@@ -1,10 +1,15 @@
-﻿const passport = require('passport');
+﻿import { Request, Response, NextFunction } from 'express';
+import passport from 'passport';
 
-exports.authenticate = passport.authenticate('jwt', { session: false });
+// Strict authentication middleware
+export const authenticate = passport.authenticate('jwt', { session: false });
 
-exports.optionalAuthenticate = (req, res, next) => {
-  passport.authenticate('jwt', { session: false }, (err, user) => {
-    if (user) req.user = user;
+// Optional authentication middleware
+export const optionalAuthenticate = (req: Request, res: Response, next: NextFunction): void => {
+  passport.authenticate('jwt', { session: false }, (err: Error | null, user: any) => {
+    if (user) {
+      (req as any).user = user;  // Type assertion for req.user
+    }
     next();
   })(req, res, next);
 };

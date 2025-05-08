@@ -1,18 +1,14 @@
-﻿const express = require('express');
-const {
+﻿import express from 'express';
+import {
   createEvent,
   getEvents,
   getEventById,
   updateEvent,
   deleteEvent,
-} = require('../controllers/eventController');
+} from '../controllers/eventController';
+import { checkTrustedOrigin } from '../middleware/checkTrustedOrigin';
 
 const router = express.Router();
-
-const {checkTrustedOrigin} = require('../middleware/checkTrustedOrigin');
-
-
-// CRUD routes for users
 
 /**
  * @swagger
@@ -153,4 +149,4 @@ router.put('/events/:id', checkTrustedOrigin("PUT"), updateEvent);
  */
 router.delete('/events/:id', checkTrustedOrigin("DELETE"), deleteEvent);
 
-module.exports = router;
+export default router;

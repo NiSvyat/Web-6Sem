@@ -1,18 +1,14 @@
-﻿const express = require('express');
-const {
+﻿import express from 'express';
+import {
   createUser,
   getUsers,
   getUserById,
   updateUser,
   deleteUser,
-} = require('../controllers/userController');
+} from '../controllers/userController';
+import { checkTrustedOrigin } from '../middleware/checkTrustedOrigin';
 
 const router = express.Router();
-
-const {checkTrustedOrigin} = require('../middleware/checkTrustedOrigin');
-//const { DELETE } = require('sequelize/lib/query-types');
-
-// CRUD routes for users
 
 /**
  * @swagger
@@ -153,4 +149,4 @@ router.put('/users/:id', checkTrustedOrigin("PUT"), updateUser);
  */
 router.delete('/users/:id', checkTrustedOrigin("DELETE"), deleteUser);
 
-module.exports = router;
+export default router;

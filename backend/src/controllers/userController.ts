@@ -1,94 +1,155 @@
-﻿const db = require('../models');
-const User = db.User;
-const Event = db.Event;
-const RefreshToken = db.RefreshToken;
-const { validateUserData } = require('../middleware/validateData');
+﻿import { Request, Response } from 'express';
+import db from '../models';
+const { User } = db;  // Only import what's needed
+import { validateUserData } from '../middleware/validateData';
 
+// Type definitions
+interface UserAttributes {
+  id?: number;
+  username: string;
+  email: string;
+  password: string;
+}
 
-// Create
-const createUser = async (req, res) => {
+interface UserRequest extends Request {
+  body: UserAttributes;
+  params: {
+    id?: string;
+  };
+}
 
-  // валидация данных
+// Create User
+export const createUser = async (req: UserRequest, res: Response) => {
+  // Data validation
   const validation = await validateUserData(req.body);
   if (!validation.valid) {
     return res.status(400).json({ message: validation.message });
   }
 
-  // создание пользователя
   try {
-    const userData = req.body;
-    const newUser = await User.create(userData);
-    res.status(201).json(newUser);
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при создании пользователя', details: error.message });
-  }
-};
+    const userData: UserAttributes = req.body;
 
-// Get
-const getUsers = async (req, res) => {
-  try {
-    const users = await User.findAll();
-    res.status(200).json(users);
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при получении пользователей', details: error.message });
-  }
-};
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      where: { email: userData.email }
+    });
 
-// Get by ID
-const getUserById = async (req, res) => {
-  try {
-    const user = await User.findByPk(req.params.id);
-    if (!user) {
-      return res.status(404).json({ error: 'пользователь не найден' });
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'User with this email already exists'
+      });
     }
-    res.status(200).json(user);
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при получении пользователя', details: error.message });
+
+    const newUser = await User.create(userData);
+
+    // Omit password from response
+    const { password, ...userWithoutPassword } = newUser.get({ plain: true });
+    res.status(201).json(userWithoutPassword);
+
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error creating user',
+      details: error.message
+    });
   }
 };
 
-// Update
-const updateUser = async (req, res) => {
+// Get All Users
+export const getUsers = async (_req: Request, res: Response) => {
+  try {
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] }
+    });
+    res.status(200).json(users);
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error fetching users',
+      details: error.message
+    });
+  }
+};
 
-  // валидация данных
+// Get User by ID
+export const getUserById = async (req: UserRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ['password'] }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json(user);
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error fetching user',
+      details: error.message
+    });
+  }
+};
+
+// Update User
+export const updateUser = async (req: UserRequest, res: Response) => {
   const userId = req.params.id;
-  const validation = await validateUserData(req.body, userId);
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID is required' });
+  }
+
+  // Data validation
+  const validation = await validateUserData(req.body, parseInt(userId));  // Convert string to number
   if (!validation.valid) {
     return res.status(400).json({ message: validation.message });
   }
 
-  // обновление пользователя
   try {
-    const [updated] = await User.update(req.body, { where: { id: userId } });
-    if (!updated) {
-      return res.status(404).json({ error: 'пользователь не найден' });
-    }
-    const updatedUser = await User.findByPk(userId);
-    res.status(200).json(updatedUser);
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при обновлении пользователя', details: error.message });
-  }
-};
-
-// Delete
-const deleteUser = async (req, res) => {
-  try {
-    const deleted = await User.destroy({
-      where: { id: req.params.id },
+    const [updated] = await User.update(req.body, {
+      where: { id: userId }
     });
-    if (!deleted) {
-      return res.status(404).json({ error: 'пользователь не найден' });
+
+    if (!updated) {
+      return res.status(404).json({ error: 'User not found' });
     }
-    res.status(204).json();
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при удалении пользователя', details: error.message });
+
+    const updatedUser = await User.findByPk(userId, {
+      attributes: { exclude: ['password'] }
+    });
+
+    res.status(200).json(updatedUser);
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error updating user',
+      details: error.message
+    });
   }
 };
 
-module.exports = {
-  createUser,
-  getUsers,
-  getUserById,
-  updateUser,
-  deleteUser,
+// Delete User
+export const deleteUser = async (req: UserRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const deleted = await User.destroy({
+      where: { id: userId },
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(204).send();
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error deleting user',
+      details: error.message
+    });
+  }
 };

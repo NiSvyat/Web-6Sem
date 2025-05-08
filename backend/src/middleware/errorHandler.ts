@@ -1,10 +1,24 @@
-﻿
+﻿import { Request, Response, NextFunction } from "express";
+
+interface BodyParserSyntaxError extends SyntaxError {
+  status?: number;
+  body?: unknown;
+}
+
 // проверка на корректность json
-const errorHandler = (err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({ message: 'некорректный JSON.' });
+const errorHandler = (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (err instanceof SyntaxError && "status" in err && "body" in err) {
+    const syntaxError = err as BodyParserSyntaxError;
+    if (syntaxError.status === 400) {
+      return res.status(400).json({ message: "некорректный JSON." });
+    }
   }
   next();
 };
 
-module.exports = errorHandler;
+export { errorHandler };

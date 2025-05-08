@@ -1,9 +1,23 @@
-﻿const { Model, DataTypes } = require('sequelize');
-const bcrypt = require('bcryptjs');
+﻿import { Model, DataTypes, Optional } from 'sequelize';
+import * as bcrypt from 'bcryptjs';
 
-module.exports = (sequelize) => {
-  class User extends Model {
-    async comparePassword(password) {
+interface UserAttributes {
+  id: number;
+  name: string;
+  email: string;
+  password: string;
+}
+
+interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {}
+
+export default (sequelize: any) => {
+  class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
+    public id!: number;
+    public name!: string;
+    public email!: string;
+    public password!: string;
+
+    public async comparePassword(password: string): Promise<boolean> {
       return bcrypt.compare(password, this.password);
     }
   }
@@ -26,7 +40,7 @@ module.exports = (sequelize) => {
     password: {
       type: DataTypes.STRING,
       allowNull: false,
-      set(value) {
+      set(value: string) {
         const salt = bcrypt.genSaltSync(10);
         const hash = bcrypt.hashSync(value, salt);
         this.setDataValue('password', hash);

@@ -1,14 +1,28 @@
-﻿const db = require('../models');
-const User = db.User;
-const Event = db.Event;
-const RefreshToken = db.RefreshToken;
-const { validateEventData } = require('../middleware/validateData');
+﻿import { Request, Response } from 'express';
+import db from '../models';
+const { User, Event } = db;
+import { validateEventData } from '../middleware/validateData';
 
+// Type definitions
+interface EventAttributes {
+  id?: number;
+  title: string;
+  description: string;
+  date: string;  // Changed from Date to string to match validation
+  location: string;
+  createdBy: number;
+}
+
+interface EventRequest extends Request {
+  body: EventAttributes;
+  params: {
+    id?: string;
+  };
+}
 
 // Create
-const createEvent = async (req, res) => {
-
-  // валидация данных
+export const createEvent = async (req: EventRequest, res: Response) => {
+  // Data validation
   const validation = validateEventData(req.body);
   if (!validation.valid) {
     return res.status(400).json({ message: validation.message });
@@ -17,88 +31,112 @@ const createEvent = async (req, res) => {
   const { createdBy } = req.body;
 
   try {
-    // проверка существования пользователя
+    // Check if user exists
     const existingUser = await User.findOne({ where: { id: createdBy } });
     if (!existingUser) {
-      return res.status(404).json({ message: 'пользователя не существует' });
+      return res.status(404).json({ message: 'User does not exist' });
     }
 
-    // создание события
-    const eventData = req.body;
+    // Create event
+    const eventData: EventAttributes = req.body;
     const newEvent = await Event.create(eventData);
     res.status(201).json(newEvent);
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при создании мероприятия', details: error.message });
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error creating event',
+      details: error.message
+    });
   }
 };
 
-// Get
-const getEvents = async (req, res) => {
+// Get all events
+export const getEvents = async (_req: Request, res: Response) => {
   try {
     const events = await Event.findAll();
     res.status(200).json(events);
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при получении мероприятий', details: error.message });
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error fetching events',
+      details: error.message
+    });
   }
 };
 
-// Get by ID
-const getEventById = async (req, res) => {
+// Get event by ID
+export const getEventById = async (req: EventRequest, res: Response) => {
   try {
-    const event = await Event.findByPk(req.params.id);
+    const eventId = req.params.id;
+    if (!eventId) {
+      return res.status(400).json({ error: 'Event ID is required' });
+    }
+
+    const event = await Event.findByPk(eventId);
 
     if (!event) {
-      return res.status(404).json({ error: 'мероприятие не найдено' });
+      return res.status(404).json({ error: 'Event not found' });
     }
     res.status(200).json(event);
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при получении мероприятия', details: error.message });
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error fetching event',
+      details: error.message
+    });
   }
 };
 
-// Update
-const updateEvent = async (req, res) => {
-
-  // валидация данных
+// Update event
+export const updateEvent = async (req: EventRequest, res: Response) => {
+  // Data validation
   const validation = validateEventData(req.body, true);
   if (!validation.valid) {
     return res.status(400).json({ message: validation.message });
   }
 
-  // обновление мороприятия
   try {
+    const eventId = req.params.id;
+    if (!eventId) {
+      return res.status(400).json({ error: 'Event ID is required' });
+    }
+
     const [updated] = await Event.update(req.body, {
-      where: { id: req.params.id },
+      where: { id: eventId },
     });
+
     if (!updated) {
-      return res.status(404).json({ error: 'мероприятие не найдено' });
+      return res.status(404).json({ error: 'Event not found' });
     }
-    const updatedEvent = await Event.findByPk(req.params.id);
+
+    const updatedEvent = await Event.findByPk(eventId);
     res.status(200).json(updatedEvent);
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при обновлении мероприятия', details: error.message });
-  }
-};
-
-// Delete
-const deleteEvent = async (req, res) => {
-  try {
-    const deleted = await Event.destroy({
-      where: { id: req.params.id },
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error updating event',
+      details: error.message
     });
-    if (!deleted) {
-      return res.status(404).json({ error: 'мероприятие не найдено' });
-    }
-    res.status(204).json();
-  } catch (error) {
-    res.status(400).json({ error: 'ошибка при удалении мероприятия', details: error.message });
   }
 };
 
-module.exports = {
-  createEvent,
-  getEvents,
-  getEventById,
-  updateEvent,
-  deleteEvent,
+// Delete event
+export const deleteEvent = async (req: EventRequest, res: Response) => {
+  try {
+    const eventId = req.params.id;
+    if (!eventId) {
+      return res.status(400).json({ error: 'Event ID is required' });
+    }
+
+    const deleted = await Event.destroy({
+      where: { id: eventId },
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    res.status(204).send();
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Error deleting event',
+      details: error.message
+    });
+  }
 };

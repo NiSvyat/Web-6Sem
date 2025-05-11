@@ -1,4 +1,4 @@
-﻿import express from 'express';
+﻿import express, { Request, Response, NextFunction } from 'express';
 import {
   createEvent,
   getEvents,
@@ -40,7 +40,11 @@ const router = express.Router();
  *       400:
  *         description: Ошибка валидации или создания события
  */
-router.post('/events', checkTrustedOrigin("POST"), createEvent);
+router.post('/events', checkTrustedOrigin("POST"),
+  (req: Request, res: Response, next: NextFunction) => {
+    createEvent(req, res).catch(next);
+  }
+);
 
 /**
  * @swagger
@@ -61,7 +65,11 @@ router.post('/events', checkTrustedOrigin("POST"), createEvent);
  *       400:
  *         description: Ошибка при получении мероприятий
  */
-router.get('/events', checkTrustedOrigin("GETS"), getEvents);
+router.get('/events', checkTrustedOrigin("GETS"),
+  (_req: Request, res: Response, next: NextFunction) => {
+    getEvents(_req, res).catch(next);
+  }
+);
 
 /**
  * @swagger
@@ -89,7 +97,11 @@ router.get('/events', checkTrustedOrigin("GETS"), getEvents);
  *       400:
  *         description: Ошибка при получении мероприятия
  */
-router.get('/events/:id', checkTrustedOrigin("GET"), getEventById);
+router.get('/events/:id', checkTrustedOrigin("GET"),
+  (req: Request, res: Response, next: NextFunction) => {
+    getEventById(req, res).catch(next);
+  }
+);
 
 /**
  * @swagger
@@ -123,7 +135,11 @@ router.get('/events/:id', checkTrustedOrigin("GET"), getEventById);
  *       400:
  *         description: Ошибка валидации или обновления мероприятия
  */
-router.put('/events/:id', checkTrustedOrigin("PUT"), updateEvent);
+router.put('/events/:id', checkTrustedOrigin("PUT"),
+  (req: Request, res: Response, next: NextFunction) => {
+    updateEvent(req, res).catch(next);
+  }
+);
 
 /**
  * @swagger
@@ -147,6 +163,10 @@ router.put('/events/:id', checkTrustedOrigin("PUT"), updateEvent);
  *       400:
  *         description: Ошибка при удалении мероприятия
  */
-router.delete('/events/:id', checkTrustedOrigin("DELETE"), deleteEvent);
+router.delete('/events/:id', checkTrustedOrigin("DELETE"),
+  (req: Request, res: Response, next: NextFunction) => {
+    deleteEvent(req, res).catch(next);
+  }
+);
 
 export default router;

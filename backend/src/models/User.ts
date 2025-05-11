@@ -1,4 +1,4 @@
-﻿import { Model, DataTypes, Optional } from 'sequelize';
+﻿import { Model, DataTypes, Optional, Sequelize } from 'sequelize';
 import * as bcrypt from 'bcryptjs';
 
 interface UserAttributes {
@@ -8,20 +8,20 @@ interface UserAttributes {
   password: string;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {}
+// Remove the empty interface and use Optional directly
+export class User extends Model<UserAttributes, Optional<UserAttributes, 'id'>>
+  implements UserAttributes {
+  public id!: number;
+  public name!: string;
+  public email!: string;
+  public password!: string;
 
-export default (sequelize: any) => {
-  class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
-    public id!: number;
-    public name!: string;
-    public email!: string;
-    public password!: string;
-
-    public async comparePassword(password: string): Promise<boolean> {
-      return bcrypt.compare(password, this.password);
-    }
+  public async comparePassword(password: string): Promise<boolean> {
+    return bcrypt.compare(password, this.password);
   }
+}
 
+export default (sequelize: Sequelize): typeof User => {
   User.init({
     id: {
       type: DataTypes.INTEGER,
@@ -54,4 +54,8 @@ export default (sequelize: any) => {
   });
 
   return User;
+};
+
+export type UserInstance = InstanceType<typeof User> & {
+  comparePassword: (password: string) => Promise<boolean>;
 };

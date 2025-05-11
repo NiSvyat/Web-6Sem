@@ -1,4 +1,4 @@
-﻿import { Model, DataTypes, Optional } from 'sequelize';
+﻿import { Model, DataTypes, Optional, Sequelize } from 'sequelize';
 
 interface EventAttributes {
   id: number;
@@ -11,18 +11,17 @@ interface EventAttributes {
   createdBy: number;
 }
 
-interface EventCreationAttributes extends Optional<EventAttributes, 'id'> {}
+export class Event extends Model<EventAttributes, Optional<EventAttributes, 'id'>>
+  implements EventAttributes {
+  public id!: number;
+  public title!: string;
+  public description!: string | null;
+  public date!: Date;
+  public category!: EventAttributes['category'];
+  public createdBy!: number;
+}
 
-export default (sequelize: any) => {
-  class Event extends Model<EventAttributes, EventCreationAttributes> implements EventAttributes {
-    public id!: number;
-    public title!: string;
-    public description!: string | null;
-    public date!: Date;
-    public category!: EventAttributes['category'];
-    public createdBy!: number;
-  }
-
+export default (sequelize: Sequelize): typeof Event => {
   Event.init({
     id: {
       type: DataTypes.INTEGER,
@@ -68,3 +67,5 @@ export default (sequelize: any) => {
 
   return Event;
 };
+
+export type EventInstance = InstanceType<typeof Event>;

@@ -1,6 +1,4 @@
-﻿import { Sequelize } from 'sequelize';
-
-interface DbModels {
+﻿interface DbModels {
   [key: string]: any;
   User: any;
   Event: any;
@@ -8,14 +6,12 @@ interface DbModels {
 }
 
 export default function(db: DbModels): void {
-  // Clear any existing associations first
   Object.keys(db).forEach(modelName => {
     if (db[modelName].associate) {
       db[modelName].associate(db);
     }
   });
 
-  // User-Event relationships
   db.User.hasMany(db.Event, {
     foreignKey: 'createdBy',
     sourceKey: 'id',
@@ -26,14 +22,13 @@ export default function(db: DbModels): void {
     targetKey: 'id',
   });
 
-  // User-RefreshToken relationships
   db.User.hasMany(db.RefreshToken, {
-    foreignKey: 'userId',  // Changed to 'userId' for proper foreign key relationship
+    foreignKey: 'userId',
     sourceKey: 'id'
   });
 
   db.RefreshToken.belongsTo(db.User, {
-    foreignKey: 'userId',  // Changed to 'userId' for proper foreign key relationship
+    foreignKey: 'userId',
     targetKey: 'id'
   });
 }

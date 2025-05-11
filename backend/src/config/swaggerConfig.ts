@@ -1,4 +1,4 @@
-﻿module.exports = {
+﻿export default {
   definition: {
     openapi: '3.0.0',
     info: {
@@ -72,5 +72,5 @@
       },
     },
   },
-  apis: ['./routes/*.js'],
+  apis: ['./src/routes/*.ts'], // Changed to .ts and added src path
 };

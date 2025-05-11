@@ -1,4 +1,4 @@
-﻿import express from 'express';
+﻿import express, { Request, Response, NextFunction } from 'express';
 import {
   createUser,
   getUsers,
@@ -40,7 +40,11 @@ const router = express.Router();
  *       400:
  *         description: Ошибка валидации или создания пользователя
  */
-router.post('/users', checkTrustedOrigin("POST"), createUser);
+router.post('/users', checkTrustedOrigin("POST"),
+  (req: Request, res: Response, next: NextFunction) => {
+    createUser(req, res).catch(next);
+  }
+);
 
 /**
  * @swagger
@@ -61,7 +65,11 @@ router.post('/users', checkTrustedOrigin("POST"), createUser);
  *       400:
  *         description: Ошибка при получении пользователей
  */
-router.get('/users', checkTrustedOrigin("GETS"), getUsers);
+router.get('/users', checkTrustedOrigin("GETS"),
+  (req: Request, res: Response, next: NextFunction) => {
+    getUsers(req, res).catch(next);
+  }
+);
 
 /**
  * @swagger
@@ -89,7 +97,11 @@ router.get('/users', checkTrustedOrigin("GETS"), getUsers);
  *       400:
  *         description: Ошибка при получении пользователя
  */
-router.get('/users/:id', checkTrustedOrigin("GET"), getUserById);
+router.get('/users/:id', checkTrustedOrigin("GET"),
+  (req: Request, res: Response, next: NextFunction) => {
+    getUserById(req, res).catch(next);
+  }
+);
 
 /**
  * @swagger
@@ -123,7 +135,11 @@ router.get('/users/:id', checkTrustedOrigin("GET"), getUserById);
  *       400:
  *         description: Ошибка валидации или обновления пользователя
  */
-router.put('/users/:id', checkTrustedOrigin("PUT"), updateUser);
+router.put('/users/:id', checkTrustedOrigin("PUT"),
+  (req: Request, res: Response, next: NextFunction) => {
+    updateUser(req, res).catch(next);
+  }
+);
 
 /**
  * @swagger
@@ -147,6 +163,10 @@ router.put('/users/:id', checkTrustedOrigin("PUT"), updateUser);
  *       400:
  *         description: Ошибка при удалении пользователя
  */
-router.delete('/users/:id', checkTrustedOrigin("DELETE"), deleteUser);
+router.delete('/users/:id', checkTrustedOrigin("DELETE"),
+  (req: Request, res: Response, next: NextFunction) => {
+    deleteUser(req, res).catch(next);
+  }
+);
 
 export default router;

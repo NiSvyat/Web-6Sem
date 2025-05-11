@@ -1,4 +1,5 @@
-﻿import { Request, Response, NextFunction } from 'express';
+﻿import { AuthRequest } from '../types/express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import db from '../models';
 
@@ -20,18 +21,18 @@ interface UserAttributes {
   id: number;
   email: string;
   password: string;
-  username: string;
+  name: string;
 }
 
-interface AuthRequest extends Request {
-  body: {
-    email?: string;
-    password?: string;
-    username?: string;
-    refreshToken?: string;
-  };
-  user?: UserAttributes;
-}
+// interface AuthRequest extends Request {
+//   body: {
+//     email?: string;
+//     password?: string;
+//     name?: string;
+//     refreshToken?: string;
+//   };
+//   user?: UserAttributes;
+// }
 
 // Convert time string to seconds (e.g., "1h" -> 3600)
 const timeStringToSeconds = (timeString: string): number => {
@@ -71,7 +72,7 @@ const generateTokens = async (user: UserAttributes): Promise<{
   await RefreshToken.create({
     token: refreshToken,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    userId: user.id
+    id: user.id
   });
 
   return { accessToken, refreshToken };
@@ -90,11 +91,12 @@ export const register = async (req: AuthRequest, res: Response, next: NextFuncti
       return res.status(400).json({ error: 'Email already in use' });
     }
 
-    const user = await User.create({ email, password, username });
+    // Change from 'name' to 'username' since that's what you're receiving
+    const user = await User.create({ email, password, name: username }); // Fix here
     const { accessToken, refreshToken } = await generateTokens(user);
 
     res.status(201).json({
-      user: { id: user.id, email: user.email, username: user.username },
+      user: { id: user.id, email: user.email, username: user.name },
       tokens: { accessToken, refreshToken }
     });
   } catch (err) {
@@ -119,7 +121,7 @@ export const login = async (req: AuthRequest, res: Response, next: NextFunction)
     const { accessToken, refreshToken } = await generateTokens(user);
 
     res.json({
-      user: { id: user.id, email: user.email, username: user.username },
+      user: { id: user.id, email: user.email, name: user.name },
       tokens: { accessToken, refreshToken }
     });
   } catch (err) {

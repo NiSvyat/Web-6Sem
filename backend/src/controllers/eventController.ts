@@ -3,44 +3,60 @@ import db from '../models';
 const { User, Event } = db;
 import { validateEventData } from '../middleware/validateData';
 
-// Type definitions
+// Update to match both model and API requirements
 interface EventAttributes {
   id?: number;
   title: string;
-  description: string;
-  date: string;  // Changed from Date to string to match validation
+  description: string | null;
+  date: Date;
+  category: 'Музыкальное мероприятие' | 'Спортивное мероприятие' | 'Искусство' |
+    'Бизнес встреча' | 'Семинар' | 'Образовательная встреча' |
+    'Деловая встреча' | 'Другое';
   location: string;
   createdBy: number;
 }
 
+// API request/response type (uses string for date)
+interface EventData extends Omit<EventAttributes, 'date'> {
+  date: string; // ISO string format for API
+}
+
 interface EventRequest extends Request {
-  body: EventAttributes;
+  body: Omit<EventData, 'id'>;
   params: {
     id?: string;
   };
 }
 
+// Convert API data to model data
+function toEventModel(data: EventData): EventAttributes {
+  return {
+    ...data,
+    date: new Date(data.date) // Convert string to Date
+  };
+}
+
 // Create
 export const createEvent = async (req: EventRequest, res: Response) => {
-  // Data validation
-  const validation = validateEventData(req.body);
-  if (!validation.valid) {
-    return res.status(400).json({ message: validation.message });
-  }
-
-  const { createdBy } = req.body;
-
   try {
-    // Check if user exists
+    const modelData = toEventModel(req.body);
+
+    const validation = validateEventData(req.body); // Validate the input (string date)
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.message });
+    }
+
+    const { createdBy } = modelData;
     const existingUser = await User.findOne({ where: { id: createdBy } });
     if (!existingUser) {
       return res.status(404).json({ message: 'User does not exist' });
     }
 
-    // Create event
-    const eventData: EventAttributes = req.body;
-    const newEvent = await Event.create(eventData);
-    res.status(201).json(newEvent);
+    const newEvent = await Event.create(modelData);
+    res.status(201).json({
+      ...newEvent.get(),
+      date: newEvent.date.toISOString() // Convert back to string for response
+    });
   } catch (error: any) {
     res.status(400).json({
       error: 'Error creating event',
@@ -49,56 +65,21 @@ export const createEvent = async (req: EventRequest, res: Response) => {
   }
 };
 
-// Get all events
-export const getEvents = async (_req: Request, res: Response) => {
-  try {
-    const events = await Event.findAll();
-    res.status(200).json(events);
-  } catch (error: any) {
-    res.status(400).json({
-      error: 'Error fetching events',
-      details: error.message
-    });
-  }
-};
-
-// Get event by ID
-export const getEventById = async (req: EventRequest, res: Response) => {
-  try {
-    const eventId = req.params.id;
-    if (!eventId) {
-      return res.status(400).json({ error: 'Event ID is required' });
-    }
-
-    const event = await Event.findByPk(eventId);
-
-    if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
-    res.status(200).json(event);
-  } catch (error: any) {
-    res.status(400).json({
-      error: 'Error fetching event',
-      details: error.message
-    });
-  }
-};
-
 // Update event
 export const updateEvent = async (req: EventRequest, res: Response) => {
-  // Data validation
-  const validation = validateEventData(req.body, true);
-  if (!validation.valid) {
-    return res.status(400).json({ message: validation.message });
-  }
-
   try {
     const eventId = req.params.id;
     if (!eventId) {
       return res.status(400).json({ error: 'Event ID is required' });
     }
 
-    const [updated] = await Event.update(req.body, {
+    const validation = validateEventData(req.body, true);
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.message });
+    }
+
+    const modelData = toEventModel(req.body);
+    const [updated] = await Event.update(modelData, {
       where: { id: eventId },
     });
 
@@ -107,7 +88,10 @@ export const updateEvent = async (req: EventRequest, res: Response) => {
     }
 
     const updatedEvent = await Event.findByPk(eventId);
-    res.status(200).json(updatedEvent);
+    res.status(200).json({
+      ...updatedEvent?.get(),
+      date: updatedEvent?.date.toISOString()
+    });
   } catch (error: any) {
     res.status(400).json({
       error: 'Error updating event',

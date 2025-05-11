@@ -1,18 +1,18 @@
 ﻿import { Request, Response } from 'express';
 import db from '../models';
-const { User } = db;  // Only import what's needed
+const { User } = db;
 import { validateUserData } from '../middleware/validateData';
 
-// Type definitions
+// Update to match your model's attributes
 interface UserAttributes {
   id?: number;
-  username: string;
+  name: string;  // Changed from username to name
   email: string;
   password: string;
 }
 
 interface UserRequest extends Request {
-  body: UserAttributes;
+  body: Omit<UserAttributes, 'id'>; // Request body shouldn't include id
   params: {
     id?: string;
   };
@@ -27,9 +27,11 @@ export const createUser = async (req: UserRequest, res: Response) => {
   }
 
   try {
-    const userData: UserAttributes = req.body;
+    const userData = {
+      ...req.body,
+      name: req.body.name
+    };
 
-    // Check if user already exists
     const existingUser = await User.findOne({
       where: { email: userData.email }
     });
@@ -42,9 +44,9 @@ export const createUser = async (req: UserRequest, res: Response) => {
 
     const newUser = await User.create(userData);
 
-    // Omit password from response
-    const { password, ...userWithoutPassword } = newUser.get({ plain: true });
-    res.status(201).json(userWithoutPassword);
+    // Solution 1: Type assertion
+    const userResponse = newUser.get({ plain: true }) as Omit<UserAttributes, 'password'>;
+    res.status(201).json(userResponse);
 
   } catch (error: any) {
     res.status(400).json({
@@ -53,7 +55,6 @@ export const createUser = async (req: UserRequest, res: Response) => {
     });
   }
 };
-
 // Get All Users
 export const getUsers = async (_req: Request, res: Response) => {
   try {

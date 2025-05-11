@@ -1,4 +1,7 @@
-﻿import { User } from '../models'; // Assuming User model is properly typed
+﻿import db from '../models'; // Import the default export
+
+// Then access User through db:
+const { User } = db;
 
 interface ValidationResult {
   valid: boolean;

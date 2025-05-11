@@ -19,7 +19,7 @@ passport.use(new JwtStrategy(options, async (jwtPayload: JwtPayload, done: Verif
 
     if (user) {
       // user также будет типизирован
-      console.log(user.username); // Автодополнение будет работать
+      console.log(user.name); // Автодополнение будет работать
       return done(null, user);
     }
     return done(null, false);

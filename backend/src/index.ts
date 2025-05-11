@@ -5,10 +5,10 @@ import morgan from 'morgan';
 import { authenticateDB } from './config/db';
 import userRoutes from './routes/userRoutes';
 import eventRoutes from './routes/eventRoutes';
-import errorHandler from './middleware/errorHandler';
+import { errorHandler } from './middleware/errorHandler';
 import swaggerJsDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
-import swaggerConfig from './config/swaggerConfig';
+import swaggerConfig from './config/swaggerConfig'; // Direct import
 import passport from 'passport';
 import db from './models';
 import associate from './models/associations';
@@ -30,7 +30,7 @@ db.sequelize.sync({ alter: true })
 
 const app = express();
 
-const corsOptions = {
+const corsOptions: cors.CorsOptions = {
   origin: process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(',') : '*',
   methods: process.env.CORS_ALLOWED_METHODS ? process.env.CORS_ALLOWED_METHODS.split(',') : ['GET', 'POST', 'PUT', 'DELETE'],
   optionsSuccessStatus: 200,
@@ -46,8 +46,11 @@ app.get('/protected', passport.authenticate('jwt', { session: false }), (req, re
   res.json({ message: 'This is protected data', user: req.user });
 });
 
-app.use(morgan('[:method] :url'));
-app.use(errorHandler);
+// Fix errorHandler middleware usage
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  errorHandler(err, req, res, next);
+});
+app.use(morgan('dev'));
 app.use(userRoutes);
 app.use(eventRoutes);
 
@@ -56,7 +59,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const PORT = process.env.PORT || 3000;
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {  // Fixed unused req parameter
   res.json({ message: 'мефедрон' });
 });
 

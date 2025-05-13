@@ -9,7 +9,13 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "paths": {
-      "@models/*": ["src/models/*"]
+      "@models/*": ["src/models/*"],
+      "@config/*": ["src/config/*"],
+      "@controllers/*": ["src/controllers/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@routes/*": ["src/routes/*"],
+      "@types/*": ["src/types/*"],
+      "@migrations/*": ["src/migrations/*"]
     },
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },

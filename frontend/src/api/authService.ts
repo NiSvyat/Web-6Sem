@@ -1,17 +1,25 @@
 ﻿import axiosInstance from './axiosInstance';
-import { LoginData, RegisterData } from '../types';
+import { clearAuthToken, setAuthToken } from '../utils/auth';
+import type { LoginData, RegisterData, User, AuthResponse } from '../types';
 
-export const login = async (data: LoginData) => {
-  const response = await axiosInstance.post('/auth/login', data);
-  return response.data;
+export const login = async (data: LoginData): Promise<User> => {
+  const response = await axiosInstance.post<AuthResponse>('/auth/login', data);
+  setAuthToken(response.data.token);
+  return response.data.user;
 };
 
-export const register = async (data: RegisterData) => {
-  const response = await axiosInstance.post('/auth/register', data);
-  return response.data;
+export const logout = async (): Promise<void> => {
+  await axiosInstance.post('/auth/logout');
+  clearAuthToken();
 };
 
-export const getCurrentUser = async () => {
-  const response = await axiosInstance.get('/auth/me');
+export const register = async (data: RegisterData): Promise<User> => {
+  const response = await axiosInstance.post<AuthResponse>('/auth/register', data);
+  setAuthToken(response.data.token); // If you want to auto-login after registration
+  return response.data.user;
+};
+
+export const getCurrentUser = async (): Promise<User> => {
+  const response = await axiosInstance.get<User>('/auth/me');
   return response.data;
 };

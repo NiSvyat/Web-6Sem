@@ -2,7 +2,7 @@
   id: number;
   title: string;
   description: string;
-  date: Date;
+  date: string;
   category: string;
   createdBy: number;
 }

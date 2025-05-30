@@ -1,5 +1,5 @@
 ﻿import axiosInstance from './axiosInstance';
-import { Event } from '../types';
+import type { Event } from '../types';
 
 export const getEvents = async (category?: string): Promise<Event[]> => {
   const params = category ? { category } : {};

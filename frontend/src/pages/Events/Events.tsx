@@ -1,17 +1,9 @@
 ﻿import { useEffect, useState } from 'react';
-import EventCard from '../../components/EventCard/EventCard'; // Fixed import
+import EventCard from '../../components/EventCard/EventCard';
 import { getEvents } from '../../api/eventService';
 import { useAuth } from '../../hooks/useAuth';
 import styles from './Events.module.scss';
-
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  category: string;
-  createdBy: string;
-}
+import type { Event } from '../../types/event';
 
 export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -37,9 +29,7 @@ export default function Events() {
       }
     };
 
-    fetchEvents().catch((err) => {
-      console.error('Unhandled promise rejection:', err);
-    });
+    void fetchEvents();
   }, [categoryFilter]);
 
   return (

@@ -1,6 +1,7 @@
-﻿import { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCurrentUser } from '../api/authService';
-import type { User } from '../types/user.ts';
+import type { User } from '../types';
+
 
 interface AuthContextType {
   user: User | null;
@@ -8,7 +9,12 @@ interface AuthContextType {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>(null!);
+// Provide default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  setUser: () => console.warn('No auth provider'),
+  logout: () => console.warn('No auth provider'),
+});
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -22,12 +28,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
       }
     };
-
-    fetchUser();
+    void fetchUser();
   }, []);
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
     setUser(null);
   };
 
@@ -38,4 +43,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

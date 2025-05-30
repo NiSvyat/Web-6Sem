@@ -1,4 +1,5 @@
-﻿import { useState } from 'react';
+﻿// src/pages/Login/Login.tsx
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../../api/authService';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,22 +10,20 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const auth = useAuth(); // Get the whole auth context
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const user = await login({ email, password });
-      setUser(user);
+      auth.setUser(user); // Use the setUser from auth context
       navigate('/events');
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else if (typeof err === 'string') {
-        setError(err);
-      } else {
-        setError('An unknown error occurred');
-      }
+      setError(
+        err instanceof Error ? err.message :
+          typeof err === 'string' ? err :
+            'An unknown error occurred'
+      );
     }
   };
 
@@ -54,4 +53,4 @@ export default function Login() {
       </p>
     </div>
   );
-};
+}

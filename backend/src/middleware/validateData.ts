@@ -1,4 +1,4 @@
-﻿import db from '../models'; // Import the default export
+﻿import db from '../models/index.js'; // Import the default export
 
 // Then access User through db:
 const { User } = db;

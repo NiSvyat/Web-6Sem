@@ -1,7 +1,7 @@
 ﻿import { Request, Response } from 'express';
-import db from '../models';
+import db from '../models/index.js';
 const { User } = db;
-import { validateUserData } from '../middleware/validateData';
+import { validateUserData } from '../middleware/validateData.js';
 
 // Update to match your model's attributes
 interface UserAttributes {

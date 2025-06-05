@@ -1,7 +1,7 @@
-﻿import { AuthRequest } from '../types/express';
+﻿import { AuthRequest } from '../types/express.js';
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import db from '../models';
+import db from '../models/index.js';
 
 // Extract models with proper typing
 const User = db.User as typeof db.User & {

@@ -2,17 +2,17 @@
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
-import { authenticateDB } from '@config/db';
-import userRoutes from '@routes/userRoutes';
-import eventRoutes from '@routes/eventRoutes';
-import { errorHandler } from '@middleware/errorHandler';
+import { authenticateDB } from '@config/db.js';
+import userRoutes from '@routes/userRoutes.js';
+import eventRoutes from '@routes/eventRoutes.js';
+import { errorHandler } from '@middleware/errorHandler.js';
 import swaggerJsDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
-import swaggerConfig from '@config/swaggerConfig'; // Direct import
+import swaggerConfig from '@config/swaggerConfig.js'; // Direct import
 import passport from 'passport';
-import db from './models';
-import associate from '@models/associations';
-import authRoutes from '@routes/auth';
+import db from './models/index.js';
+import associate from './models/associations.js';
+import authRoutes from '@routes/auth.js';
 import '@config/passport';
 
 dotenv.config();

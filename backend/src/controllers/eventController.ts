@@ -1,7 +1,7 @@
 ﻿import { Request, Response } from 'express';
-import db from '../models';
+import db from '../models/index.js';
 const { User, Event } = db;
-import { validateEventData } from '../middleware/validateData';
+import { validateEventData } from '@middleware/validateData.js';
 
 // Update to match both model and API requirements
 interface EventAttributes {
@@ -121,6 +121,36 @@ export const deleteEvent = async (req: EventRequest, res: Response) => {
     res.status(400).json({
       error: 'Error deleting event',
       details: error.message
+    });
+  }
+};
+
+// Get
+export const getEvents = async (req: Request, res: Response) => {
+  try {
+    const events = await Event.findAll();
+    res.status(200).json(events);
+  } catch (error) {
+    res.status(400).json({
+      error: "ошибка при получении мероприятий",
+      details: (error as Error).message,
+    });
+  }
+};
+
+// Get by ID
+export const getEventById = async (req: Request, res: Response) => {
+  try {
+    const event = await Event.findByPk(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({ error: "мероприятие не найдено" });
+    }
+    res.status(200).json(event);
+  } catch (error) {
+    res.status(400).json({
+      error: "ошибка при получении мероприятия",
+      details: (error as Error).message,
     });
   }
 };

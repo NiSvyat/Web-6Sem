@@ -5,8 +5,8 @@ import {
   getEventById,
   updateEvent,
   deleteEvent,
-} from '../controllers/eventController';
-import { checkTrustedOrigin } from '../middleware/checkTrustedOrigin';
+} from '@controllers/eventController.js';
+import { checkTrustedOrigin } from '@middleware/checkTrustedOrigin.js';
 
 const router = express.Router();
 

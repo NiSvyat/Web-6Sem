@@ -5,8 +5,8 @@ import {
   getUserById,
   updateUser,
   deleteUser,
-} from '../controllers/userController';
-import { checkTrustedOrigin } from '../middleware/checkTrustedOrigin';
+} from '../controllers/userController.js';
+import { checkTrustedOrigin } from '../middleware/checkTrustedOrigin.js';
 
 const router = express.Router();
 

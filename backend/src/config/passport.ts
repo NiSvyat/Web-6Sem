@@ -1,6 +1,6 @@
 ﻿import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt, StrategyOptions, VerifiedCallback } from 'passport-jwt';
-import db from '../models'; // Теперь с правильными типами
+import db from '../models/index.js'; // Теперь с правильными типами
 
 const JWT_SECRET = 'MyJWT';
 

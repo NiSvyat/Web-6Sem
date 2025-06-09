@@ -1,6 +1,6 @@
-﻿import { AuthRequest } from '../types/express.js';
-import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+﻿import { Request, Response, NextFunction } from 'express';
+import { ValidationError, ValidationErrorItem, Transaction } from 'sequelize';
+import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import db from '../models/index.js';
 
 // Extract models with proper typing
@@ -9,12 +9,30 @@ const User = db.User as typeof db.User & {
 };
 const RefreshToken = db.RefreshToken;
 
-// Environment variables with type checking
-const {
-  JWT_SECRET = 'default_secret',
-  JWT_EXPIRES_IN = '1h',
-  REFRESH_TOKEN_EXPIRES_IN = '7d'
-} = process.env;
+// Environment variables with proper type casting
+interface JwtConfig {
+  secret: Secret;
+  expiresIn: number | string;
+  refreshExpiresIn: number | string;
+}
+
+const jwtConfig: JwtConfig = {
+  secret: process.env.JWT_SECRET || 'default_secret',
+  expiresIn: process.env.JWT_EXPIRES_IN ?
+    (isNaN(Number(process.env.JWT_EXPIRES_IN)) ?
+      process.env.JWT_EXPIRES_IN :
+      Number(process.env.JWT_EXPIRES_IN)) :
+    '1h',
+  refreshExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN ?
+    (isNaN(Number(process.env.REFRESH_TOKEN_EXPIRES_IN)) ?
+      process.env.REFRESH_TOKEN_EXPIRES_IN :
+      Number(process.env.REFRESH_TOKEN_EXPIRES_IN)) :
+    '7d'
+};
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 
 // Type definitions
 interface UserAttributes {
@@ -24,83 +42,121 @@ interface UserAttributes {
   name: string;
 }
 
-// interface AuthRequest extends Request {
-//   body: {
-//     email?: string;
-//     password?: string;
-//     name?: string;
-//     refreshToken?: string;
-//   };
-//   user?: UserAttributes;
-// }
+interface AuthRequest extends Request {
+  body: {
+    email?: string;
+    password?: string;
+    name?: string;
+    refreshToken?: string;
+  };
+  user?: UserAttributes;
+}
 
-// Convert time string to seconds (e.g., "1h" -> 3600)
-const timeStringToSeconds = (timeString: string): number => {
-  const unit = timeString.slice(-1);
-  const value = parseInt(timeString.slice(0, -1));
-
-  switch (unit) {
-    case 's': return value;
-    case 'm': return value * 60;
-    case 'h': return value * 60 * 60;
-    case 'd': return value * 60 * 60 * 24;
-    default: return parseInt(timeString) || 3600; // default to 1 hour
-  }
-};
-
-// Properly typed token generation function
-const generateTokens = async (user: UserAttributes): Promise<{
+const generateTokens = async (
+  user: UserAttributes,
+  transaction?: Transaction
+): Promise<{
   accessToken: string;
-  refreshToken: string
+  refreshToken: string;
 }> => {
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET is not defined');
+  if (!jwtConfig.secret) {
+    return Promise.reject(new Error('JWT_SECRET is not defined'));
+  }
+  if (!user.id) {
+    return Promise.reject(new Error('User ID is missing'));
   }
 
+  const secret: jwt.Secret = JWT_SECRET as jwt.Secret;
+  const expiresInOptions: jwt.SignOptions = {
+    expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn']
+  };
+  const refreshExpiresInOptions: jwt.SignOptions = {
+    expiresIn: REFRESH_TOKEN_EXPIRES_IN as jwt.SignOptions['expiresIn']
+  };
   const accessToken = jwt.sign(
     { id: user.id, email: user.email },
-    JWT_SECRET,
-    { expiresIn: timeStringToSeconds(JWT_EXPIRES_IN) }
+    secret,
+    expiresInOptions
   );
 
   const refreshToken = jwt.sign(
     { id: user.id },
-    JWT_SECRET,
-    { expiresIn: timeStringToSeconds(REFRESH_TOKEN_EXPIRES_IN) }
+    secret,
+    refreshExpiresInOptions
   );
 
-  await RefreshToken.create({
-    token: refreshToken,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    id: user.id
-  });
+  try {
+    await RefreshToken.create({
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      userId: user.id
+    }, { transaction });
+  } catch (error) {
+    return Promise.reject(error);
+  }
 
   return { accessToken, refreshToken };
 };
 
-export const register = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { email, password, username } = req.body;
+export const register = async (req: AuthRequest, res: Response) => {
+  // 1. Начинаем транзакцию ПЕРЕД всеми операциями с БД
+  const transaction = await db.sequelize.transaction();
 
-    if (!email || !password || !username) {
-      return res.status(400).json({ error: 'Email, password and username are required' });
+  try {
+    const { email, password, name } = req.body;
+
+    // 2. Валидация (можно вне транзакции, но откатываем при ошибке)
+    if (!email?.trim() || !password?.trim() || !name?.trim()) {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
-    const existingUser = await User.findOne({ where: { email } });
+    // 3. Проверка существующего пользователя (ВНУТРИ транзакции)
+    const existingUser = await User.findOne({
+      where: { email },
+      transaction // Передаем транзакцию в запрос
+    });
+
     if (existingUser) {
+      await transaction.rollback();
       return res.status(400).json({ error: 'Email already in use' });
     }
 
-    // Change from 'name' to 'username' since that's what you're receiving
-    const user = await User.create({ email, password, name: username }); // Fix here
-    const { accessToken, refreshToken } = await generateTokens(user);
-
-    res.status(201).json({
-      user: { id: user.id, email: user.email, username: user.name },
-      tokens: { accessToken, refreshToken }
+    // 4. Создание пользователя (ВНУТРИ транзакции)
+    const user = await User.create({
+      email: email.trim(),
+      password,
+      name: name.trim()
+    }, {
+      transaction, // Критически важно!
+      returning: true
     });
+
+    // 5. Генерация токенов (ВНУТРИ транзакции)
+    const tokens = await generateTokens(user, transaction);
+
+    // 6. Фиксация всех изменений
+    await transaction.commit();
+
+    return res.status(201).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      },
+      token: tokens.accessToken,
+      refreshToken: tokens.refreshToken
+    });
+
   } catch (err) {
-    next(err);
+    // 7. Откат при ЛЮБОЙ ошибке
+    if (transaction) await transaction.rollback();
+
+    console.error('Registration error:', err);
+    return res.status(500).json({
+      error: 'Registration failed',
+      details: err instanceof Error ? err.message : 'Unknown error'
+    });
   }
 };
 
@@ -120,7 +176,7 @@ export const login = async (req: AuthRequest, res: Response, next: NextFunction)
 
     const { accessToken, refreshToken } = await generateTokens(user);
 
-    res.json({
+    return res.json({
       user: { id: user.id, email: user.email, name: user.name },
       tokens: { accessToken, refreshToken }
     });
@@ -146,11 +202,12 @@ export const refreshToken = async (req: AuthRequest, res: Response, next: NextFu
       return res.status(401).json({ error: 'Invalid or expired refresh token' });
     }
 
-    const { accessToken, refreshToken: newRefreshToken } = await generateTokens((tokenData as any).User);
+    const user = tokenData.User as UserAttributes;
+    const { accessToken, refreshToken: newRefreshToken } = await generateTokens(user);
 
     await tokenData.destroy();
 
-    res.json({
+    return res.json({
       accessToken,
       refreshToken: newRefreshToken
     });
@@ -167,7 +224,7 @@ export const logout = async (req: AuthRequest, res: Response, next: NextFunction
       await RefreshToken.destroy({ where: { token: refreshToken } });
     }
 
-    res.status(204).end();
+    return res.status(204).end();
   } catch (err) {
     next(err);
   }

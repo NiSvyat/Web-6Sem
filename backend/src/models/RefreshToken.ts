@@ -1,26 +1,26 @@
-﻿import { Model, DataTypes, Optional, Sequelize } from 'sequelize';
+﻿// src/models/RefreshToken.ts
+import { Model, DataTypes, Sequelize } from 'sequelize';
+import { User } from './User.js'; // Импортируем модель User
 
 interface RefreshTokenAttributes {
-  id: number;
+  id?: number;
   token: string;
   expiresAt: Date;
+  userId: number;
 }
 
-export class RefreshToken extends Model<RefreshTokenAttributes, Optional<RefreshTokenAttributes, 'id'>>
-  implements RefreshTokenAttributes {
-  public id!: number;
-  public token!: string;
-  public expiresAt!: Date;
+export class RefreshToken extends Model<RefreshTokenAttributes> implements RefreshTokenAttributes {
+  declare id: number;
+  declare token: string;
+  declare expiresAt: Date;
+  declare userId: number;
+
+  // Добавляем декларацию для связи
+  declare User?: User;
 }
 
 export default (sequelize: Sequelize): typeof RefreshToken => {
   RefreshToken.init({
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      allowNull: false,
-      autoIncrement: true
-    },
     token: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -29,6 +29,14 @@ export default (sequelize: Sequelize): typeof RefreshToken => {
     expiresAt: {
       type: DataTypes.DATE,
       allowNull: false
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id'
+      }
     }
   }, {
     sequelize,
@@ -39,5 +47,3 @@ export default (sequelize: Sequelize): typeof RefreshToken => {
 
   return RefreshToken;
 };
-
-export type RefreshTokenInstance = InstanceType<typeof RefreshToken>;

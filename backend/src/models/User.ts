@@ -27,6 +27,7 @@ export default (sequelize: Sequelize): typeof User => {
       type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
+      allowNull: false
     },
     name: {
       type: DataTypes.STRING,
@@ -51,6 +52,12 @@ export default (sequelize: Sequelize): typeof User => {
     modelName: 'User',
     tableName: 'users',
     timestamps: true,
+    hooks: {
+      beforeValidate: (user) => {
+        if (user.email) user.email = user.email.toLowerCase().trim();
+        if (user.name) user.name = user.name.trim();
+      }
+    }
   });
 
   return User;

@@ -1,5 +1,11 @@
 ﻿import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
 import cors from 'cors';
 import morgan from 'morgan';
 import { authenticateDB } from '@config/db.js';
@@ -14,8 +20,7 @@ import db from './models/index.js';
 import associate from './models/associations.js';
 import authRoutes from '@routes/auth.js';
 import '@config/passport';
-
-dotenv.config();
+import { fileURLToPath } from 'url';
 
 if (!process.env.JWT_SECRET) {
   console.error('FATAL ERROR: JWT_SECRET is not defined');
@@ -31,10 +36,45 @@ db.sequelize.sync({ alter: true })
 const app = express();
 
 const corsOptions: cors.CorsOptions = {
-  origin: process.env.CORS_ALLOWED_ORIGINS ? process.env.CORS_ALLOWED_ORIGINS.split(',') : '*',
-  methods: process.env.CORS_ALLOWED_METHODS ? process.env.CORS_ALLOWED_METHODS.split(',') : ['GET', 'POST', 'PUT', 'DELETE'],
-  optionsSuccessStatus: 200,
+  origin: process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+    : 'http://localhost:5173',
+  methods: process.env.CORS_ALLOWED_METHODS
+    ? process.env.CORS_ALLOWED_METHODS.split(',')
+    : ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With'
+  ],
+  credentials: true, // Если используете куки/авторизацию
+  optionsSuccessStatus: 200
 };
+app.options('*', cors(corsOptions)); // Явная обработка preflight
+
+//                             // Функция для очистки БД
+// async function clearTables() {
+//   try {
+//     await db.sequelize.transaction(async (transaction) => {
+//       // Отключаем проверку внешних ключей (для PostgreSQL)
+//       await db.sequelize.query('SET session_replication_role = replica;', { transaction });
+//
+//       // Очищаем таблицы
+//       await db.RefreshToken.destroy({ truncate: true, cascade: true, transaction });
+//       await db.User.destroy({ truncate: true, cascade: true, transaction });
+//
+//       // Включаем проверку обратно
+//       await db.sequelize.query('SET session_replication_role = DEFAULT;', { transaction });
+//     });
+//
+//     console.log('Все таблицы успешно очищены');
+//   } catch (error) {
+//     console.error('Ошибка при очистке таблиц:', error);
+//   }
+// }
+//
+// // Вызов функции
+// clearTables();
 
 app.use(express.json());
 app.use(cors(corsOptions));

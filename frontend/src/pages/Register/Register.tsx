@@ -13,10 +13,15 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await register({ name, email, password });
+      await register({
+        email,
+        password,
+        name
+      });
       navigate('/login');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Registration failed');
+      console.error('Registration error:', err.response?.data);
     }
   };
 

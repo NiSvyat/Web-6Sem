@@ -12,13 +12,13 @@ const errorHandler = (
   res: Response,
   next: NextFunction,
 ) => {
-  if (err instanceof SyntaxError && "status" in err && "body" in err) {
-    const syntaxError = err as BodyParserSyntaxError;
-    if (syntaxError.status === 400) {
-      return res.status(400).json({ message: "некорректный JSON." });
-    }
+  console.error('Error handler:', err);
+
+  if (err instanceof SyntaxError && "status" in err && err.status === 400 && "body" in err) {
+    return res.status(400).json({ message: "некорректный JSON." });
   }
-  next();
+
+  next(err);
 };
 
 export { errorHandler };

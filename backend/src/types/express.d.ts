@@ -16,7 +16,9 @@ export interface AuthRequest extends Request {
   body: {
     email?: string;
     password?: string;
+    name?: string;
     username?: string;
     refreshToken?: string;
   };
+  user?: UserAttributes;
 }

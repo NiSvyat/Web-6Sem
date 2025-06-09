@@ -14,8 +14,16 @@ export const logout = async (): Promise<void> => {
 };
 
 export const register = async (data: RegisterData): Promise<User> => {
-  const response = await axiosInstance.post<AuthResponse>('/auth/register', data);
-  setAuthToken(response.data.token); // If you want to auto-login after registration
+  const response = await axiosInstance.post<{
+    user: User;
+    token: string;
+  }>('/auth/register', {
+    email: data.email,
+    password: data.password,
+    name: data.name
+  });
+
+  setAuthToken(response.data.token);
   return response.data.user;
 };
 
